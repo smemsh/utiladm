@@ -1,0 +1,38 @@
+#!/usr/bin/awk -f
+#
+# - checks all lvm volumes for thin data/metadata usage
+# - prints volume name if exceeds threshold
+# - run in cron job to mail when thin pool out-of-space approaches
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+#
+
+BEGIN {
+	threshold = 85 # alert when exceeding this percentage used
+
+	fields[1] = "lv_full_name"
+	fields[2] = "data_percent"
+	fields[3] = "metadata_percent"
+
+	options = ""
+	nfields = length(fields)
+	for (i = 1; i <= nfields; i++) {
+		options = sprintf("%s%s", options, fields[i])
+		if (i < nfields) options = options ","
+	}
+
+	lvscmd = "lvs" \
+		" --noheadings" \
+		" --all " \
+		" --separator=' '" \
+		" --options=" options \
+	;
+
+	while (lvscmd | getline)
+		for (i = 2; i <= 3; i++)
+			if ($i > threshold)
+				printf("volume %s exceeds %u%% %s (%2.2f%%)\n",
+					$1, threshold, fields[i], $i)
+}
