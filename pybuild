@@ -17,6 +17,7 @@ ssldirbase=/opt/openssl
 relocroot=/tmp/relocate
 pkgdepot=~/tarbin
 
+logtime=`date +%Y%m%d%H%M%S`
 ncpus=`nproc`
 arch=`arch`
 
@@ -30,7 +31,7 @@ sqlite3rule=(_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a)
 
 buildwatch ()
 {
-	pv -bntl 2>&1 >|${1:?}.log | while read secs lines
+	pv -bntl 2>&1 >|${1:?}-$logtime.log | while read secs lines
 	do printf "%s\t\t\r" "$1: ${lines} lines in ${secs%.*}s"
 	done; echo
 }
@@ -58,6 +59,8 @@ configure ()
 
 	eval "${envstatic[@]}" ./configure "${confstatic[@]}" \
 	|& buildwatch configure
+
+	cp config.log config-$logtime.log
 }
 
 setup ()
