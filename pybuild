@@ -37,49 +37,55 @@ buildwatch ()
 
 configure ()
 {
-	LDFLAGS="-static -static-libgcc" \
-	CFLAGS=-fPIC \
-	LDSHARED=gcc \
-	LINKFORSHARED= \
-	./configure \
-	--prefix=/opt/python-$pyver \
-	--enable-optimizations \
-	--disable-ipv6 \
-	--with-openssl=/opt/openssl-$sslver \
-	--with-ensurepip=install \
-	--disable-shared \
-	--disable-test-modules \
-	--with-static-libpython \
-	|& buildwatch configure
+	envstatic=(
+	LDFLAGS="'-static -static-libgcc'"
+	CFLAGS=-fPIC
+	LDSHARED=gcc
+	LINKFORSHARED=
+	)
 
-	#--disable-test-modules \
+	confstatic=(
+	--prefix=/opt/python-$pyver
+	--enable-optimizations
+	--disable-ipv6
+	--with-openssl=/opt/openssl-$sslver
+	--with-ensurepip=install
+	--disable-shared
+	--disable-test-modules
+	--with-static-libpython
+	#--disable-test-modules
+	)
+
+	eval "${envstatic[@]}" ./configure "${confstatic[@]}" \
+	|& buildwatch configure
 }
 
 setup ()
 {
+	declare -a staticrules=(
+	-e '0,/^\*shared\*$/s,shared,static,'
+	-e '/^nis\>/d'
+	-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
+	-e '/^readline\>/s,termcap,tinfo,'
+	-e "s,^_ssl\\>.*,${sslrule[*]},"
+	-e "s,^_hashlib\\>.*,${hashlibrule[*]},"
+	-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
+	-e '/^_tkinter\>/d'
+	-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,'
+	-e '/^_curses_panel\>/s,(-lpanel),\1w,'
+	-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,'
+	-e '/^\*shared\*$/d'
+	-e '/^_test/d'
+	-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
+	#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
+	#-e '/^_testsinglephase\>/a\'
+	#-e '_testclinic _testclinic.c'
+	)
+
 	cd Modules
 	sed -n -r 's/^#([a-z_\*].*)$/\1/p' Setup >| Setup.local
-	sed -i -r \
-	-e '0,/^\*shared\*$/s,shared,static,' \
-	-e '/^nis\>/d' \
-	-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,' \
-	-e '/^readline\>/s,termcap,tinfo,' \
-	-e "s,^_ssl\\>.*,${sslrule[*]}," \
-	-e "s,^_hashlib\\>.*,${hashlibrule[*]}," \
-	-e '/^_hashlib/a\' -e "${sqlite3rule[*]}" \
-	-e '/^_tkinter\>/d' \
-	-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,' \
-	-e '/^_curses_panel\>/s,(-lpanel),\1w,' \
-	-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,' \
-	-e '/^\*shared\*$/d' \
-	-e '/^_test/d' \
-	-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd' \
-	Setup.local
+	sed -i -r "${staticrules[@]}" Setup.local
 	cd ..
-
-	#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c)," \
-	#-e '/^_testsinglephase\>/a\' \
-	#-e '_testclinic _testclinic.c' \
 }
 
 build ()
