@@ -118,7 +118,7 @@ main ()
 	echo "building static python: $pyver, openssl: $sslver, cores: $ncpus"
 
 	printf cleanup...
-	make distclean &>/dev/null
+	make distclean &>/dev/null || true
 	rm -rf $relocroot
 	echo done
 
