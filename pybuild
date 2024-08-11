@@ -24,21 +24,22 @@ set -o pipefail
 [[ ${1:?} =~ ^(static|dynamic)$ ]]
 
 buildtype=$1
+ncpus=`nproc`
+arch=`arch`
 
 ssldirbase=/opt/openssl
 pydirbase=/opt/python
 relocroot=/tmp/relocate
 pkgdepot=~/tarbin
 
-logtime=`date +%Y%m%d%H%M%S`
-ncpus=`nproc`
-arch=`arch`
-
 pyver=$(git describe --tags | awk -F ^v '{print $2}')
 pydir=$pydirbase-$pyver
 
 sslver=$(ls -1d $ssldirbase* | sort -rV | head -1 | awk -F - '{print $2}')
 ssldir=$ssldirbase-$sslver
+
+logtime=`date +%Y%m%d%H%M%S`
+logstr=$buildtype-$pyver-$logtime
 
 sslinc=(-I$ssldir/include/openssl -L$ssldir/lib64)
 sslrule=(
@@ -59,7 +60,7 @@ sqlite3rule=(_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a)
 buildwatch ()
 {
 	if [[ $DEBUG == 1 ]]; then cat; return; fi
-	pv -bntl 2>&1 >|${1:?}-$logtime.log | while read secs lines
+	pv -bntl 2>&1 >|${1:?}-$logstr.log | while read secs lines
 	do printf "%s\t\t\r" "$1: ${lines} lines in ${secs%.*}s"
 	done; echo
 }
@@ -98,7 +99,7 @@ configure ()
 	"${conf_common[@]}" "${confref[@]}" \
 	|& buildwatch configure
 
-	cp config.log config-$logtime.log
+	cp config.log config-$logstr.log
 }
 
 setup ()
