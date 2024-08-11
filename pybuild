@@ -135,6 +135,7 @@ setup ()
 	cd Modules
 	sed -n -r 's/^#([a-z_\*].*)$/\1/p' Setup >| Setup.local
 	sed -i -r "${rulesref[@]}" "${rules_common[@]}" Setup.local
+	cp Setup.local Setup-$logstr.local
 	cd ..
 }
 
