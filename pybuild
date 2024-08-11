@@ -54,37 +54,41 @@ buildwatch ()
 
 configure ()
 {
-	declare -a env_static=(
-	LDFLAGS="'-static -static-libgcc'"
-	CFLAGS=-fPIC
-	LDSHARED=gcc
-	LINKFORSHARED=
+	env_static=(
+		LDFLAGS="'-static -static-libgcc'"
+		CFLAGS=-fPIC
+		LDSHARED=gcc
+		LINKFORSHARED=
 	)
-	declare -a env_dynamic=()
-	declare -a env_common=()
+	env_dynamic=()
+	env_common=()
 	declare -n envref=env_$buildtype
 
-	declare -a conf_common=(
-	--prefix=$pydir
-	--with-openssl=$ssldir
-	--with-ensurepip=install
-	--with-static-libpython
-	--with-lto=full
-	--enable-optimizations
-	--disable-ipv6
-	--disable-shared
-	--disable-test-modules
+	###
+
+	conf_common=(
+		--prefix=$pydir
+		--with-openssl=$ssldir
+		--with-ensurepip=install
+		--with-static-libpython
+		--with-lto=full
+		--enable-optimizations
+		--disable-ipv6
+		--disable-shared
+		--disable-test-modules
 	)
-	declare -a conf_dynamic=(
-	--enable-loadable-sqlite-extensions
+	conf_dynamic=(
+		--enable-loadable-sqlite-extensions
 	)
-	declare -a conf_static=()
+	conf_static=()
 	declare -n confref=conf_$buildtype
 
+	###
+
 	eval \
-	"${env_common[@]}" "${envref[@]}" \
-	./configure \
-	"${conf_common[@]}" "${confref[@]}" \
+		"${env_common[@]}" "${envref[@]}" \
+		./configure \
+		"${conf_common[@]}" "${confref[@]}" \
 	|& buildwatch configure
 
 	cp config.log config-$logstr.log
@@ -92,49 +96,58 @@ configure ()
 
 setup ()
 {
-	declare -a sslinc=(-I$ssldir/include/openssl -L$ssldir/lib64)
-	declare -a sslrule=(
-	_ssl{,.c}
-	${sslinc[@]}
-	-l:libssl.a -Wl,--exclude-libs,libssl.a
-	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-	-l:libz.a -Wl,--exclude-libs,libz.a
+	sslinc=(
+		-I$ssldir/include/openssl
+		-L$ssldir/lib64
 	)
-	declare -a hashlibrule=(
-	_hash{lib,openssl.c}
-	${sslinc[@]}
-	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-	-l:libz.a -Wl,--exclude-libs,libz.a
+	sslrule=(
+		_ssl{,.c}
+		${sslinc[@]}
+		-l:libssl.a -Wl,--exclude-libs,libssl.a
+		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+		-l:libz.a -Wl,--exclude-libs,libz.a
 	)
-	declare -a sqlite3rule=(
-	_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a
+	hashlibrule=(
+		_hash{lib,openssl.c}
+		${sslinc[@]}
+		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+		-l:libz.a -Wl,--exclude-libs,libz.a
+	)
+	sqlite3rule=(
+		_sqlite3
+		$(cd Modules; echo _sqlite/*.c)
+		-l:libsqlite3.a
 	)
 
-	declare -a rules_static=(
-	-e '0,/^\*shared\*$/s,shared,static,'
-	-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
-	-e '/^\*shared\*$/d'
+	###
+
+	rules_static=(
+		-e '0,/^\*shared\*$/s,shared,static,'
+		-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
+		-e '/^\*shared\*$/d'
 	)
-	declare -a rules_common=(
-	-e '/^nis\>/d'
-	-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
-	-e '/^readline\>/s,termcap,tinfo,'
-	-e "s%^_ssl\\>.*%${sslrule[*]}%"
-	-e "s%^_hashlib\\>.*%${hashlibrule[*]}%"
-	-e '/^_tkinter\>/d'
-	-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,'
-	-e '/^_curses_panel\>/s,(-lpanel),\1w,'
-	-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,'
-	-e '/^_test/d'
-	-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
-	#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
-	#-e '/^_testsinglephase\>/a\'
-	#-e '_testclinic _testclinic.c'
+	rules_common=(
+		-e '/^nis\>/d'
+		-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
+		-e '/^readline\>/s,termcap,tinfo,'
+		-e "s%^_ssl\\>.*%${sslrule[*]}%"
+		-e "s%^_hashlib\\>.*%${hashlibrule[*]}%"
+		-e '/^_tkinter\>/d'
+		-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,'
+		-e '/^_curses_panel\>/s,(-lpanel),\1w,'
+		-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,'
+		-e '/^_test/d'
+		-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
+		#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
+		#-e '/^_testsinglephase\>/a\'
+		#-e '_testclinic _testclinic.c'
 	)
-	declare -a rules_dynamic=(
-	-e '/^_typing\>/d'
+	rules_dynamic=(
+		-e '/^_typing\>/d'
 	)
 	declare -n rulesref=rules_$buildtype
+
+	###
 
 	cd Modules
 	sed -n -r 's/^#([a-z_\*].*)$/\1/p' Setup >| Setup.local
@@ -158,11 +171,10 @@ package ()
 	make DESTDIR=$relocroot install \
 	|& buildwatch install
 
-	tar \
-	-C $relocroot \
-	-cvaf $pkgdepot/$pkgbase.tar.zst \
-	--owner=0 --group=0 \
-	opt \
+	tar -C $relocroot \
+		-cvaf $pkgdepot/$pkgbase.tar.zst \
+		--owner=0 --group=0 \
+		opt \
 	|& buildwatch package
 }
 
