@@ -43,22 +43,6 @@ logstr=$buildtype-$pyver-$logtime
 
 pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_${arch}_opt
 
-sslinc=(-I$ssldir/include/openssl -L$ssldir/lib64)
-sslrule=(
-	_ssl{,.c}
-	${sslinc[@]}
-	-l:libssl.a -Wl,--exclude-libs,libssl.a
-	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-	-l:libz.a -Wl,--exclude-libs,libz.a
-)
-hashlibrule=(
-	_hash{lib,openssl.c}
-	${sslinc[@]}
-	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-	-l:libz.a -Wl,--exclude-libs,libz.a
-)
-sqlite3rule=(_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a)
-
 buildwatch ()
 {
 	if [[ $DEBUG == 1 ]]; then cat; return; fi
@@ -108,6 +92,24 @@ configure ()
 
 setup ()
 {
+	declare -a sslinc=(-I$ssldir/include/openssl -L$ssldir/lib64)
+	declare -a sslrule=(
+	_ssl{,.c}
+	${sslinc[@]}
+	-l:libssl.a -Wl,--exclude-libs,libssl.a
+	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+	-l:libz.a -Wl,--exclude-libs,libz.a
+	)
+	declare -a hashlibrule=(
+	_hash{lib,openssl.c}
+	${sslinc[@]}
+	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+	-l:libz.a -Wl,--exclude-libs,libz.a
+	)
+	declare -a sqlite3rule=(
+	_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a
+	)
+
 	declare -a rules_static=(
 	-e '0,/^\*shared\*$/s,shared,static,'
 	-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
