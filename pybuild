@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 #
-# Builds static Python + OpenSSL
-# for major.minor versions: 3.12 + 3.0
+# pybuild
+#   - builds static or dynamically linked Python + OpenSSL
+#   - always statically links libssl/libcrypto
+#
+# desc:
+#   - script to configure and build python, make a tape archive
+#   - last tested with python 3.12 line, openssl 3.0 line
+#
+# args:
+#   - arg1: whether to build 'static' or 'dynamic' interpreter
 #
 # scott@smemsh.net
 # https://github.com/smemsh/utiladm/
@@ -12,6 +20,9 @@ set -e
 set -o pipefail
 
 [[ ${PWD##*/} == cpython ]]
+[[ ${1:?} =~ ^(static|dynamic)$ ]]
+
+buildtype=$1
 
 ssldirbase=/opt/openssl
 relocroot=/tmp/relocate
@@ -39,14 +50,17 @@ buildwatch ()
 
 configure ()
 {
-	envstatic=(
+	declare -a env_static=(
 	LDFLAGS="'-static -static-libgcc'"
 	CFLAGS=-fPIC
 	LDSHARED=gcc
 	LINKFORSHARED=
 	)
+	declare -a env_dynamic=()
+	declare -a env_common=()
+	declare -n envref=env_$buildtype
 
-	confstatic=(
+	declare -a conf_common=(
 	--prefix=/opt/python-$pyver
 	--enable-optimizations
 	--disable-ipv6
@@ -57,8 +71,15 @@ configure ()
 	--with-static-libpython
 	#--disable-test-modules
 	)
+	declare -a conf_dynamic=(
+	)
+	declare -a conf_static=()
+	declare -n confref=conf_$buildtype
 
-	eval "${envstatic[@]}" ./configure "${confstatic[@]}" \
+	eval \
+	"${env_common[@]}" "${envref[@]}" \
+	./configure \
+	"${conf_common[@]}" "${confref[@]}" \
 	|& buildwatch configure
 
 	cp config.log config-$logtime.log
@@ -66,29 +87,34 @@ configure ()
 
 setup ()
 {
-	declare -a staticrules=(
+	declare -a rules_static=(
 	-e '0,/^\*shared\*$/s,shared,static,'
+	-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
+	-e '/^\*shared\*$/d'
+	)
+	declare -a rules_common=(
 	-e '/^nis\>/d'
 	-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
 	-e '/^readline\>/s,termcap,tinfo,'
 	-e "s,^_ssl\\>.*,${sslrule[*]},"
 	-e "s,^_hashlib\\>.*,${hashlibrule[*]},"
-	-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
 	-e '/^_tkinter\>/d'
 	-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,'
 	-e '/^_curses_panel\>/s,(-lpanel),\1w,'
 	-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,'
-	-e '/^\*shared\*$/d'
 	-e '/^_test/d'
 	-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
 	#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
 	#-e '/^_testsinglephase\>/a\'
 	#-e '_testclinic _testclinic.c'
 	)
+	declare -a rules_dynamic=(
+	)
+	declare -n rulesref=rules_$buildtype
 
 	cd Modules
 	sed -n -r 's/^#([a-z_\*].*)$/\1/p' Setup >| Setup.local
-	sed -i -r "${staticrules[@]}" Setup.local
+	sed -i -r "${rulesref[@]}" "${rules_common[@]}" Setup.local
 	cd ..
 }
 
@@ -115,7 +141,11 @@ package ()
 
 main ()
 {
-	echo "building static python: $pyver, openssl: $sslver, cores: $ncpus"
+
+	printf "building $buildtype python: $pyver, "
+	printf "openssl: $sslver, "
+	printf "cores: $ncpus"
+	echo
 
 	printf cleanup...
 	make distclean &>/dev/null || true
