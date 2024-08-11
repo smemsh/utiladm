@@ -7,6 +7,7 @@
 # desc:
 #   - script to configure and build python, make a tape archive
 #   - last tested with python 3.12 line, openssl 3.0 line
+#   - has some hardcoded paths, confined to variables
 #
 # args:
 #   - arg1: whether to build 'static' or 'dynamic' interpreter
@@ -25,6 +26,7 @@ set -o pipefail
 buildtype=$1
 
 ssldirbase=/opt/openssl
+pydirbase=/opt/python
 relocroot=/tmp/relocate
 pkgdepot=~/tarbin
 
@@ -33,9 +35,12 @@ ncpus=`nproc`
 arch=`arch`
 
 pyver=$(git describe --tags | awk -F ^v '{print $2}')
-sslver=$(ls -1d $ssldirbase* | sort -rV | head -1 | awk -F - '{print $2}')
+pydir=$pydirbase-$pyver
 
-sslinc=(-I/opt/openssl-$sslver/include/openssl -L/opt/openssl-$sslver/lib64)
+sslver=$(ls -1d $ssldirbase* | sort -rV | head -1 | awk -F - '{print $2}')
+ssldir=$ssldirbase-$sslver
+
+sslinc=(-I$ssldir/include/openssl -L$ssldir/lib64)
 sslrule=(
 	_ssl{,.c}
 	${sslinc[@]}
@@ -72,10 +77,10 @@ configure ()
 	declare -n envref=env_$buildtype
 
 	declare -a conf_common=(
-	--prefix=/opt/python-$pyver
+	--prefix=$pydir
 	--enable-optimizations
 	--disable-ipv6
-	--with-openssl=/opt/openssl-$sslver
+	--with-openssl=$ssldir
 	--with-ensurepip=install
 	--disable-shared
 	--disable-test-modules
