@@ -82,14 +82,14 @@ configure ()
 
 	declare -a conf_common=(
 	--prefix=$pydir
-	--enable-optimizations
-	--disable-ipv6
 	--with-openssl=$ssldir
 	--with-ensurepip=install
-	--disable-shared
-	--disable-test-modules
 	--with-static-libpython
 	--with-lto=full
+	--enable-optimizations
+	--disable-ipv6
+	--disable-shared
+	--disable-test-modules
 	)
 	declare -a conf_dynamic=(
 	--enable-loadable-sqlite-extensions
