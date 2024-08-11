@@ -37,7 +37,7 @@ sslver=$(ls -1d $ssldirbase* | sort -rV | head -1 | awk -F - '{print $2}')
 
 sslinc=(-I/opt/openssl-$sslver/include/openssl -L/opt/openssl-$sslver/lib64)
 sslrule=(_ssl{,.c} ${sslinc[@]} -l:lib{ssl,crypto,z}.a)
-hashlibrule=(_hashlib _hashopenssl.c ${sslinc[@]} -l:libcrypto.a)
+hashlibrule=(_hashlib _hashopenssl.c ${sslinc[@]} -l:lib{crypto,z}.a)
 sqlite3rule=(_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a)
 
 buildwatch ()
