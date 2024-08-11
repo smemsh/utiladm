@@ -130,6 +130,7 @@ setup ()
 	#-e '_testclinic _testclinic.c'
 	)
 	declare -a rules_dynamic=(
+	-e '/^_typing\>/d'
 	)
 	declare -n rulesref=rules_$buildtype
 
