@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# pydeps
+#   - audit a python build archive for extension module link deps
+#
+# desc
+#   - list modules with runtime link dependencies OTHER THAN LIBC
+#   - intended to assist in developing a Setup.local "*static*" section
+#   - uses a temporary directory to extract all .so files
+#   - removes tmpdir when done
+#
+# arg1
+#   - path to python build archive (tar.zst format)
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+#
+
+set -e
+set -o pipefail
+
+test -f ${1:?} && test -r $1
+[[ `file -b --mime-type $1` == application/zstd ]]
+
+tmpdir=`mktemp -qd`
+cd $tmpdir
+
+tar \
+	-axf $1 \
+	--wildcards '*.so' \
+	--transform 's,.*/,,' \
+;
+
+for file in *
+do echo ${file%%.*}; ldd $file; echo; done \
+| grep -vE \
+	-e linux-vdso \
+	-e ld-linux-x86 \
+	-e '\<libc\.so\.6\>' \
+| awk '/^[[:alnum:]_]/ {
+	deps = ""
+	libline = $0
+	while (getline) {
+		if ($1 ~ /^lib/) {
+			deps = deps" "$1
+			continue
+		} else if (length(deps)) {
+			printf("%s:%s\n",
+			       gensub("^.*/(.+).cpython.*$",
+			              "\\1", 1, libline \
+			       ),
+			       deps \
+			)
+		}
+		next
+	}
+}' \
+| sort \
+| column -t
+
+cd ..
+rm -r "$tmpdir"
