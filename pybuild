@@ -89,7 +89,6 @@ configure ()
 	--disable-shared
 	--disable-test-modules
 	--with-static-libpython
-	#--disable-test-modules
 	)
 	declare -a conf_dynamic=(
 	--enable-loadable-sqlite-extensions
