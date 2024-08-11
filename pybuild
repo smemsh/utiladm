@@ -92,6 +92,7 @@ configure ()
 	#--disable-test-modules
 	)
 	declare -a conf_dynamic=(
+	--enable-loadable-sqlite-extensions
 	)
 	declare -a conf_static=()
 	declare -n confref=conf_$buildtype
