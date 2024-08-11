@@ -41,6 +41,8 @@ ssldir=$ssldirbase-$sslver
 logtime=`date +%Y%m%d%H%M%S`
 logstr=$buildtype-$pyver-$logtime
 
+pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_${arch}_opt
+
 sslinc=(-I$ssldir/include/openssl -L$ssldir/lib64)
 sslrule=(
 	_ssl{,.c}
@@ -150,7 +152,7 @@ package ()
 
 	tar \
 	-C $relocroot \
-	-cvaf $pkgdepot/python-${pyver}_static_${arch}_opt.tar.zst \
+	-cvaf $pkgdepot/$pkgbase.tar.zst \
 	--owner=0 --group=0 \
 	opt \
 	|& buildwatch package
