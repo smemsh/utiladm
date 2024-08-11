@@ -36,8 +36,19 @@ pyver=$(git describe --tags | awk -F ^v '{print $2}')
 sslver=$(ls -1d $ssldirbase* | sort -rV | head -1 | awk -F - '{print $2}')
 
 sslinc=(-I/opt/openssl-$sslver/include/openssl -L/opt/openssl-$sslver/lib64)
-sslrule=(_ssl{,.c} ${sslinc[@]} -l:lib{ssl,crypto,z}.a)
-hashlibrule=(_hashlib _hashopenssl.c ${sslinc[@]} -l:lib{crypto,z}.a)
+sslrule=(
+	_ssl{,.c}
+	${sslinc[@]}
+	-l:libssl.a -Wl,--exclude-libs,libssl.a
+	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+	-l:libz.a -Wl,--exclude-libs,libz.a
+)
+hashlibrule=(
+	_hash{lib,openssl.c}
+	${sslinc[@]}
+	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+	-l:libz.a -Wl,--exclude-libs,libz.a
+)
 sqlite3rule=(_sqlite3 $(cd Modules; echo _sqlite/*.c) -l:libsqlite3.a)
 
 buildwatch ()
@@ -96,8 +107,8 @@ setup ()
 	-e '/^nis\>/d'
 	-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
 	-e '/^readline\>/s,termcap,tinfo,'
-	-e "s,^_ssl\\>.*,${sslrule[*]},"
-	-e "s,^_hashlib\\>.*,${hashlibrule[*]},"
+	-e "s%^_ssl\\>.*%${sslrule[*]}%"
+	-e "s%^_hashlib\\>.*%${hashlibrule[*]}%"
 	-e '/^_tkinter\>/d'
 	-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,'
 	-e '/^_curses_panel\>/s,(-lpanel),\1w,'
