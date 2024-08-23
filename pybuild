@@ -46,7 +46,7 @@ ssldir=$ssldirbase-$sslver
 logtime=`date +%Y%m%d%H%M%S`
 logstr=$buildtype-$pyver-$logtime
 
-pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_${arch}_opt
+pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_opt_${arch}
 
 buildwatch ()
 {
