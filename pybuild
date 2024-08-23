@@ -26,6 +26,7 @@ set -o pipefail
 buildtype=$1
 ncpus=`nproc`
 arch=`arch`
+arch=${arch/x86_64/amd64}
 
 case $buildtype in
 (static) pydirbase=/opt/pystatic;;
