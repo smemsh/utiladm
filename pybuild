@@ -27,8 +27,12 @@ buildtype=$1
 ncpus=`nproc`
 arch=`arch`
 
+case $buildtype in
+(static) pydirbase=/opt/pystatic;;
+(dynamic) pydirbase=/opt/python;;
+esac
+
 ssldirbase=/opt/openssl
-pydirbase=/opt/python
 relocroot=/tmp/relocate
 pkgdepot=~/tarbin
 
