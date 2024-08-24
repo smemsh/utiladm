@@ -27,6 +27,7 @@ buildtype=$1
 ncpus=`nproc`
 arch=`arch`
 arch=${arch/x86_64/amd64}
+arch=${arch/aarch64/arm64}
 
 case $buildtype in
 (static) pydirbase=/opt/pystatic;;
