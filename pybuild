@@ -29,6 +29,14 @@ arch=`arch`
 arch=${arch/x86_64/amd64}
 arch=${arch/aarch64/arm64}
 
+if source /etc/lsb-release &>/dev/null
+then [[ $DISTRIB_ID == Ubuntu ]] &&
+	osver=u${DISTRIB_RELEASE%.*}
+else f=/etc/redhat-release; test -f $f &&
+	osver=rhel$(awk '{FS = "."; $0 = $3; print $1}' $f)
+fi
+[[ $osver ]]
+
 case $buildtype in
 (static) pydirbase=/opt/pystatic;;
 (dynamic) pydirbase=/opt/python;;
@@ -47,7 +55,7 @@ ssldir=$ssldirbase-$sslver
 logtime=`date +%Y%m%d%H%M%S`
 logstr=$buildtype-$pyver-$logtime
 
-pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_opt_${arch}
+pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_opt_${arch}_${osver}
 
 buildwatch ()
 {
