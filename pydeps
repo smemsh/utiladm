@@ -22,12 +22,13 @@ set -o pipefail
 
 test -f ${1:?} && test -r $1
 [[ `file -b --mime-type $1` == application/zstd ]]
+abspath=$(readlink -f $1)
 
 tmpdir=`mktemp -qd`
 cd $tmpdir
 
 tar \
-	-axf $1 \
+	-axf $abspath \
 	--wildcards '*.so' \
 	--transform 's,.*/,,' \
 ;
