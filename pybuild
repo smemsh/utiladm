@@ -110,11 +110,16 @@ configure ()
 
 setup ()
 {
+	local libdir slib
+	for libdir in lib{,64}
+	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
+	[[ $slib ]]
+
 	local ncinc=-I/usr/include/ncursesw  # for ncurses <= 5
 
 	sslinc=(
 		-I$ssldir/include
-		-L$ssldir/lib64
+		-L$ssldir/$slib
 	)
 	sslrule=(
 		_ssl{,.c}
