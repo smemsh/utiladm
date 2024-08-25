@@ -21,7 +21,7 @@ set -e
 set -o pipefail
 
 test -f ${1:?} && test -r $1
-[[ `file -b --mime-type $1` == application/zstd ]]
+[[ `file -b --mime-type $1` =~ application/(x-){0,1}zstd ]]
 abspath=$(readlink -f $1)
 
 tmpdir=`mktemp -qd`
