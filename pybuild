@@ -110,6 +110,8 @@ configure ()
 
 setup ()
 {
+	local ncinc=-I/usr/include/ncursesw  # for ncurses <= 5
+
 	sslinc=(
 		-I$ssldir/include/openssl
 		-L$ssldir/lib64
@@ -147,8 +149,8 @@ setup ()
 		-e "s%^_ssl\\>.*%${sslrule[*]}%"
 		-e "s%^_hashlib\\>.*%${hashlibrule[*]}%"
 		-e '/^_tkinter\>/d'
-		-e '/^_curses\>/s,(-lncurses).*-ltermcap,\1w -ltinfo,'
-		-e '/^_curses_panel\>/s,(-lpanel),\1w,'
+		-e '/^_curses\>/s,(-lncurses).*-ltermcap,'$ncinc' \1w -ltinfo,'
+		-e '/^_curses_panel\>/s,(-lpanel),'$ncinc' \1w,'
 		-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,'
 		-e '/^_test/d'
 		-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
