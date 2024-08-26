@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+#
+# pylinks
+#   set up symlinks in $2 (default /usr/local) to installed python root $1
+#
+# notes:
+#   - aborts on attempt to clobber any regular files in target
+#   - symlinks allowed to exist already in the target, get overwritten
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+#
+
+set -e
+errtrap () { echo "$FUNCNAME: code $1, line: $2, cmd: \"$3\""; exit $1; }
+trap 'errtrap $? $LINENO "$BASH_COMMAND"' ERR
+
+if [[ $1 == -t || $1 == --test ]]
+then run=echo; shift
+else ((EUID == 0))
+fi
+
+pyroot=${1:?}
+pyrootdir=${pyroot%/*}
+pyrootbase=${pyroot##*/}
+[[ $pyroot == $(readlink -f $pyroot) ]]
+[[ $pyroot == $pyrootdir/$pyrootbase ]]
+test -d $pyroot
+
+pyver=${pyrootbase#*-}
+[[ $pyver =~ ^([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)$ ]]
+pymajor=${BASH_REMATCH[1]}
+pyminor=${BASH_REMATCH[2]}
+pypatch=${BASH_REMATCH[3]}
+pymmver=python$pymajor.$pyminor
+[[ $pyver == $pymajor.$pyminor.$pypatch ]]
+
+destroot=${2:-/usr/local}
+manreldir=share/man/man1
+pcreldir=lib/pkgconfig
+
+for dir in bin $pcreldir $manreldir include; do
+	testdir=$destroot/$dir
+	if ! test -d $testdir
+	then mkdir -p $testdir; fi
+	[[ $(readlink -f $testdir) == $testdir ]]
+done
+
+for dir in {include,lib}/$pymmver; do
+	destpath=$destroot/$dir
+	pypath=$pyroot/$dir
+	test -d $pypath
+	[[ $(readlink -f $pypath) == $pypath ]]
+	test -L $destpath || ! test -e $destpath
+	$run ln -rnsf $pypath $destpath
+done
+
+for dir in bin lib/pkgconfig; do
+	pydir=$pyroot/$dir
+	destdir=$destroot/$dir
+	test -d $pydir
+	for path in $pydir/*; do
+		file=${path##*/}
+		destfile=$destdir/$file
+		test -L $destfile || ! test -e $destfile
+		$run ln -rnsf $path $destdir
+	done
+done
+
+destmandir=$destroot/$manreldir
+for path in $pyroot/$manreldir/*; do
+	file=${path##*/}
+	destfile=$destmandir/$file
+	test -L $destfile || ! test -e $destfile
+	$run ln -rnsf $path $destmandir
+done
