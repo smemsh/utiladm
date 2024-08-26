@@ -21,6 +21,10 @@ set -e
 trap_err () { echo "$FUNCNAME: code $1, line: $2, cmd: \"$3\""; exit $1; }
 trap 'trap_err $? $LINENO "$BASH_COMMAND"' ERR
 
+relocroot=`mktemp -d`
+trap_exit () { rm -rf ${relocroot:?}; }
+trap trap_exit EXIT
+
 set -o pipefail
 
 [[ ${PWD##*/} == cpython ]]
@@ -46,7 +50,6 @@ case $buildtype in
 esac
 
 ssldirbase=/opt/openssl
-relocroot=/tmp/relocate
 pkgdepot=~/tarbin
 
 pyver=$(git describe --tags | awk -F ^v '{print $2}')
@@ -190,7 +193,7 @@ build ()
 
 package ()
 {
-	test -e $relocroot && false
+	mkdir $relocroot
 
 	make DESTDIR=$relocroot install \
 	|& buildwatch install
@@ -204,7 +207,6 @@ package ()
 
 main ()
 {
-
 	printf "building $buildtype python: $pyver, "
 	printf "openssl: $sslver, "
 	printf "cores: $ncpus"
@@ -212,7 +214,6 @@ main ()
 
 	printf cleanup...
 	make distclean &>/dev/null || true
-	rm -rf $relocroot
 	echo done
 
 	configure
