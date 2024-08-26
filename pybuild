@@ -18,8 +18,8 @@
 #
 
 set -e
-errtrap () { echo "$FUNCNAME: code $1, line: $2, cmd: \"$3\""; exit $1; }
-trap 'errtrap $? $LINENO "$BASH_COMMAND"' ERR
+trap_err () { echo "$FUNCNAME: code $1, line: $2, cmd: \"$3\""; exit $1; }
+trap 'trap_err $? $LINENO "$BASH_COMMAND"' ERR
 
 set -o pipefail
 
