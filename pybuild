@@ -54,6 +54,7 @@ pkgdepot=~/tarbin
 
 pyver=$(git describe --tags | awk -F ^v '{print $2}')
 pydir=$pydirbase-$pyver
+pymmver=${pyver%.*}
 
 sslver=$(ls -1d $ssldirbase* | sort -rV | head -1 | awk -F - '{print $2}')
 ssldir=$ssldirbase-$sslver
@@ -187,8 +188,28 @@ setup ()
 
 build ()
 {
+	local pylib straylib
+	local added out
+
 	make -j$ncpus \
 	|& buildwatch build
+
+	printf "addlibs..."
+	pylib=libpython$pymmver.a
+	test -f $pylib
+
+	for straylib in $(find Modules/ -name '*.a'); do
+		ar -M <<- %
+			open $pylib
+			addlib $straylib
+			save
+			end
+		%
+		printf "${straylib##*/} "
+		let ++added
+	done
+	((added == 0)) && out=done || ranlib $pylib
+	echo $out
 }
 
 package ()
