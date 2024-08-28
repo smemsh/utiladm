@@ -214,8 +214,6 @@ build ()
 
 package ()
 {
-	mkdir $relocroot
-
 	make DESTDIR=$relocroot install \
 	|& buildwatch install
 
