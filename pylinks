@@ -6,6 +6,7 @@
 # notes:
 #   - aborts on attempt to clobber any regular files in target
 #   - symlinks allowed to exist already in the target, get overwritten
+#   - audits at finish to make sure all files represented
 #
 # scott@smemsh.net
 # https://github.com/smemsh/utiladm/
@@ -34,6 +35,7 @@ pymajor=${BASH_REMATCH[1]}
 pyminor=${BASH_REMATCH[2]}
 pypatch=${BASH_REMATCH[3]}
 pymmver=python$pymajor.$pyminor
+pylibrel=lib/lib$pymmver.a
 [[ $pyver == $pymajor.$pyminor.$pypatch ]]
 
 destroot=${2:-/usr/local}
@@ -75,3 +77,17 @@ for path in $pyroot/$manreldir/*; do
 	test -L $destfile || ! test -e $destfile
 	$run ln -rnsf $path $destmandir
 done
+
+pylibdest=$destroot/$pylibrel
+pylibpath=$pyroot/$pylibrel
+test -L $pylibdest || ! test -e $pylibdest
+ln -rnsf $pylibpath $pylibdest
+
+disjuncts=($(comm -1 -3 \
+	<(find $destroot/ -follow -mindepth 1 -printf '%P\n' | sort) \
+	<(find $pyroot/ -mindepth 1 -printf '%P\n' | sort) \
+))
+if ((${#disjuncts[@]})); then
+	echo "warning: disjunction detected:" >&2
+	fmt -1 <<< "${disjuncts[@]}"
+fi
