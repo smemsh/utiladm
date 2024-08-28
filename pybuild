@@ -22,6 +22,7 @@ trap_err () { echo "$FUNCNAME: code $1, line: $2, cmd: \"$3\""; exit $1; }
 trap 'trap_err $? $LINENO "$BASH_COMMAND"' ERR
 
 relocroot=`mktemp -d`
+chmod 0755 $relocroot
 trap_exit () { (($1 == 0)) && rm -rf ${relocroot:?}; }
 trap 'trap_exit $?' EXIT
 
