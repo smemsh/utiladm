@@ -118,7 +118,7 @@ configure ()
 
 setup ()
 {
-	local libdir slib ncinc
+	local libdir slib ncinc nclibs
 	for libdir in lib{,64}
 	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
 	[[ $slib ]]
@@ -153,9 +153,11 @@ setup ()
 		-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
 		-e '/^\*shared\*$/d'
 	)
+	nclibs='-ltinfo'
 	if [[ $osver == u18 ]]; then
 		ncinc=-I/usr/include/ncursesw    # ncurses <= 5
 		rules_static+=(-e '/^_dbm\>/d')  # no libgdbm_compat.a
+		nclibs+=$'\x20-lgpm'             # too bad u18 needs it
 		sslrule+=(-l:libdl.a)            # must be after libcrypto.a
 	fi
 	rules_common=(
@@ -165,9 +167,9 @@ setup ()
 		-e "s%^_ssl\\>.*%${sslrule[*]}%"
 		-e "s%^_hashlib\\>.*%${hashlibrule[*]}%"
 		-e '/^_tkinter\>/d'
-		-e '/^_curses\>/s,(-lncurses).*-ltermcap,'$ncinc' \1w -ltinfo,'
-		-e '/^_curses_panel\>/s,(-lpanel),'$ncinc' \1w,'
-		-e '/^_curses_panel\>/s,(-lncurses),\1w -ltinfo,'
+		-e "/^_curses\\>/s,(-lncurses).*-ltermcap,$ncinc \\1w $nclibs,"
+		-e "/^_curses_panel\\>/s,(-lpanel),$ncinc \\1w $nclibs,"
+		-e "/^_curses_panel\\>/s,(-lncurses),\\1w $nclibs,"
 		-e '/^_test/d'
 		-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
 		#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
