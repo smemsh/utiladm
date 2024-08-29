@@ -200,7 +200,7 @@ build ()
 	make -j$ncpus \
 	|& buildwatch build
 
-	printf "addlibs..."
+	printf "addlibs: "
 	pylib=libpython$pymmver.a
 	test -f $pylib
 
