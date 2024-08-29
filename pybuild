@@ -155,6 +155,7 @@ setup ()
 	)
 	if [[ $osver == u18 ]]; then
 		ncinc=-I/usr/include/ncursesw    # ncurses <= 5
+		rules_static+=(-e '/^_dbm\>/d')  # no libgdbm_compat.a
 	fi
 	rules_common=(
 		-e '/^nis\>/d'
