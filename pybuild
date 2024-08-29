@@ -118,12 +118,10 @@ configure ()
 
 setup ()
 {
-	local libdir slib
+	local libdir slib ncinc
 	for libdir in lib{,64}
 	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
 	[[ $slib ]]
-
-	local ncinc=-I/usr/include/ncursesw  # for ncurses <= 5
 
 	sslinc=(
 		-I$ssldir/include
@@ -155,6 +153,9 @@ setup ()
 		-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
 		-e '/^\*shared\*$/d'
 	)
+	if [[ $osver == u18 ]]; then
+		ncinc=-I/usr/include/ncursesw    # ncurses <= 5
+	fi
 	rules_common=(
 		-e '/^nis\>/d'
 		-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
