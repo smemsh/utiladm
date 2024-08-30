@@ -22,6 +22,8 @@ then run=echo; shift
 else ((EUID == 0))
 fi
 
+ln --help |& grep -wPq -- --relative && let ++linkrel || true
+
 pyroot=${1:?}
 pyrootdir=${pyroot%/*}
 pyrootbase=${pyroot##*/}
@@ -55,7 +57,7 @@ for dir in {include,lib}/$pymmver; do
 	test -d $pypath
 	[[ $(readlink -f $pypath) == $pypath ]]
 	test -L $destpath || ! test -e $destpath
-	$run ln -rnsf $pypath $destpath
+	$run ln ${linkrel:+-r} -nsf $pypath $destpath
 done
 
 for dir in bin lib/pkgconfig; do
@@ -66,7 +68,7 @@ for dir in bin lib/pkgconfig; do
 		file=${path##*/}
 		destfile=$destdir/$file
 		test -L $destfile || ! test -e $destfile
-		$run ln -rnsf $path $destdir
+		$run ln ${linkrel:+-r} -nsf $path $destdir
 	done
 done
 
@@ -75,13 +77,13 @@ for path in $pyroot/$manreldir/*; do
 	file=${path##*/}
 	destfile=$destmandir/$file
 	test -L $destfile || ! test -e $destfile
-	$run ln -rnsf $path $destmandir
+	$run ln ${linkrel:+-r} -nsf $path $destmandir
 done
 
 pylibdest=$destroot/$pylibrel
 pylibpath=$pyroot/$pylibrel
 test -L $pylibdest || ! test -e $pylibdest
-ln -rnsf $pylibpath $pylibdest
+ln ${linkrel:+-r} -nsf $pylibpath $pylibdest
 
 disjuncts=($(comm -1 -3 \
 	<(find $destroot/ -follow -mindepth 1 -printf '%P\n' | sort) \
