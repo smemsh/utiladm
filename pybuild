@@ -119,7 +119,7 @@ configure ()
 setup ()
 {
 	local libdir slib ncinc nclibs
-	for libdir in lib{,64}
+	for libdir in lib{64,}
 	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
 	[[ $slib ]]
 
