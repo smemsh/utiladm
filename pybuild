@@ -5,7 +5,7 @@
 #   - always statically links libssl/libcrypto
 #
 # desc:
-#   - script to configure and build python, make a tape archive
+#   - script to configure and build python, makes tar.zst
 #   - last tested with python 3.12 line, openssl 3.0 line
 #   - has some hardcoded paths, confined to variables
 #
