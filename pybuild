@@ -123,6 +123,10 @@ setup ()
 	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
 	[[ $slib ]]
 
+	cryptoinc=(
+		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+		-l:libz.a -Wl,--exclude-libs,libz.a
+	)
 	sslinc=(
 		-I$ssldir/include
 		-L$ssldir/$slib
@@ -131,14 +135,12 @@ setup ()
 		_ssl{,.c}
 		${sslinc[@]}
 		-l:libssl.a -Wl,--exclude-libs,libssl.a
-		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-		-l:libz.a -Wl,--exclude-libs,libz.a
+		${cryptoinc[@]}
 	)
 	hashlibrule=(
 		_hash{lib,openssl.c}
 		${sslinc[@]}
-		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-		-l:libz.a -Wl,--exclude-libs,libz.a
+		${cryptoinc[@]}
 	)
 	sqlite3rule=(
 		_sqlite3
