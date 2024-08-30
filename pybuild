@@ -160,7 +160,7 @@ setup ()
 		ncinc=-I/usr/include/ncursesw    # ncurses <= 5
 		rules_static+=(-e '/^_dbm\>/d')  # no libgdbm_compat.a
 		nclibs+=$'\x20-lgpm'             # too bad u18 needs it
-		sslrule+=(-l:libdl.a)            # must be after libcrypto.a
+		sslrule+=(-ldl)                  # must be after libcrypto
 	fi
 	rules_common=(
 		-e '/^nis\>/d'
