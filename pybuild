@@ -76,6 +76,8 @@ buildwatch ()
 
 configure ()
 {
+	local staticlto
+
 	env_static=(
 		LDFLAGS="'-static -static-libgcc'"
 		CFLAGS=-fPIC
@@ -93,16 +95,19 @@ configure ()
 		--with-openssl=$ssldir
 		--with-ensurepip=install
 		--with-static-libpython
-		--with-lto=full
 		--enable-optimizations
 		--disable-ipv6
 		--disable-shared
 		--disable-test-modules
 	)
 	conf_dynamic=(
+		--with-lto=full
 		--enable-loadable-sqlite-extensions
 	)
-	conf_static=()
+	[[ $osver == u18 ]] && staticlto=no || staticlto=full
+	conf_static=(
+		--with-lto=$staticlto
+	)
 	declare -n confref=conf_$buildtype
 
 	###
