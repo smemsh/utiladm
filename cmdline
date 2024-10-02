@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#
+# cmdline
+#   displays columnated key-value rows of current kernel's command line args
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+
+readarray -td $'\x20' cmds < /proc/cmdline
+for ((i = 0; i < ${#cmds[@]}; i++))
+do eval printf '"%s\n"' '"${cmds[i]/=/'$'\t''}"'
+done \
+| column -s $'\t' -t
