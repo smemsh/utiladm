@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+#
+# klogpoll
+#   read kernel logs since last poll, write cleaned up lines to stdout
+#
+# desc:
+#   - reads kernel logs, as deposited by rsyslogd/syslog-ng, since last poll
+#   - run as cron job, outputs email-escaped lines, for cron to send in emails
+#   - uses state file to determine where we left off last poll
+#   - properly handles truncation and rotation
+#   - requires syslogd configured to write to KMSGFILE
+#   - do message filtering (ie, for common false-alarms) in syslog config
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+#
+
+import os, stat, sys, pwd, string, fcntl
+
+from os import EX_OK as EXIT_SUCCESS
+from os import EX_SOFTWARE as EXIT_FAILURE
+
+#
+
+KMSGFILE = '/var/log/klog'
+STATFILE = '/var/tmp/klogpoll-status.dat'
+
+# /* ioctl(2) to obtain inode generation number */
+# #include <linux/fs.h>
+# #include <stdio.h>
+# void main (void) { long i = FS_IOC_GETVERSION; printf("%ld\n", i); }
+#
+FS_IOC_GETVERSION = 2148038145
+
+statfd = logfd = 0
+
+#
+
+def err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def bomb(*args):
+    err(*args)
+    sys.exit(EXIT_FAILURE)
+
+###
+
+def open_status_file():
+
+    global statfd
+
+    flags = os.O_RDWR
+    mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
+
+    try:
+        st = os.lstat(STATFILE)
+        size = st.st_size
+        user = pwd.getpwuid(st.st_uid).pw_name
+        if user not in ['root', 'syslog']:
+            bomb("existing status file has suspicious ownership, aborting")
+
+    except FileNotFoundError:
+        flags |= os.O_CREAT | os.O_EXCL
+        size = None
+
+    statfd = os.open(STATFILE, flags, mode)
+
+    return size
+
+
+def get_status():
+
+    global statfd
+
+    sz = open_status_file()
+    if not sz: return None
+
+    # inum, gen, off
+    return tuple(map(int, os.read(statfd, sz).split()))
+
+
+def write_status(inode, version, offset):
+
+    global statfd
+
+    os.truncate(statfd, 0)
+    os.lseek(statfd, 0, os.SEEK_SET)
+    os.write(statfd, bytes(f"{inode} {version} {offset}\n", 'ascii'))
+
+
+def open_log_file():
+
+    global logfd
+
+    except FileNotFoundError: sys.exit(EXIT_SUCCESS)
+
+    st = os.fstat(logfd)
+    sz = st.st_size
+    inode = st.st_ino
+
+    # because inodes are recycled, log may have been removed and then
+    # written to moments later and have the same inum, so we need to use
+    # the generation number for the inode also, in order to
+    # disambiguate.  type for the ioctl() buffer is __le32 as shown in
+    # fs/ext4/ext4.h.  one can see the ambiguity here:
+    #
+    #  $ touch f; stat -c %i f; rm f; touch f; stat -c %i f
+    # 16256678
+    # 16256678
+    #
+    buf = bytearray(b'\0' * 4) # must be mutable type for ioctl()
+    fcntl.ioctl(logfd, FS_IOC_GETVERSION, buf)
+    version = int.from_bytes(buf, 'little')
+
+    return inode, version, sz
+
+#
+
+class StartAnew(Exception):
+    pass
+
+###
+
+def main():
+
+    global logfd
+
+    logstat = get_status()
+    if logstat: inode, version, offset = logstat
+
+    lognode, logver, logsz = open_log_file()
+
+    try:
+        if not logstat:
+            raise StartAnew
+
+        elif (lognode, logver) != (inode, version):
+            err("==> log file was rotated or removed, starting over")
+            raise StartAnew
+
+        elif logsz < offset:
+            #
+            # TODO if the log was truncated but overwritten to a greater
+            # or equal size since last run, we won't catch that.  it
+            # seems unlikely since we run every minute, and files are
+            # left to grow to 64M.  there's no obvious way to catch this
+            #
+            err("==> log file was truncated, starting over")
+            raise StartAnew
+
+    except StartAnew:
+        offset = 0
+        inode = lognode
+        version = logver
+
+    if offset > 0:
+        if offset == logsz:
+            # unchanged from last run, nothing to do
+            sys.exit(EXIT_SUCCESS)
+        os.lseek(logfd, offset - 1, os.SEEK_SET)
+        if not os.read(logfd, 1) == b'\n':
+            bomb("saved position not a newline, aborting")
+
+    newdata = os.read(logfd, logsz - offset)
+    newlen = newdata.rfind(b'\n')
+
+    if newlen < 0:
+        # havent got a full line yet
+        write_status(inode, version, offset)
+        sys.exit(EXIT_SUCCESS)
+
+    newmsgs = newdata[:newlen].splitlines()
+    for msg in newmsgs:
+
+        # we can escape non-ascii chars when we coerce from bytes, but
+        # there's no encoding for printables so we do it ourselves.
+        # maybe these can't end up in the syslog message anyways, but
+        # without knowing for sure we'll play it safe.  all output bytes
+        # should pass isprint(3) and this will have the best chance of
+        # making the cron output pass as text/plain without having to
+        # create emails ourselves
+        #
+        escaped = ''.join(
+            c if c in string.printable
+            else r'\x{0:02x}'.format(ord(c))
+            for c in str(msg, 'ascii', 'backslashreplace'))
+
+        print(escaped)
+
+    offset += newlen + 1
+    write_status(inode, version, offset)
+
+    sys.exit(EXIT_SUCCESS)
+
+
+if __name__ == '__main__':
+
+    # TODO: switch this to syslog only after auditing systems
+    if pwd.getpwuid(os.geteuid()).pw_name not in ['root', 'syslog']:
+        bomb("needs to run as syslog or root user")
+
+    main()
