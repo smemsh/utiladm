@@ -46,7 +46,7 @@ exit_trap ()
 	[[ $curgate == $router && $oldaddr == $newaddr ]] &&
 		return  # already correct, nothing to do
 
-	if [[ $oldaddr != $newaddr ]]
+	if [[ $oldaddr && $oldaddr != $newaddr ]]
 	then
 		echo "deleting old route $oldaddr via $router"
 		ip route delete $oldaddr via $router &>/dev/null
