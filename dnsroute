@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+#
+# dnsroute
+#   maintains a static route to current dns address of a host
+#
+# desc:
+#   - runs from cron, checks current lookup for host $1
+#   - add route to get there via $2 if dne
+#   - remove old route if differs from that stored in $statefile
+#   - initial use case is for smtp-relay.gmail.com, changes often
+#
+# deps:
+#   - ip, awk, grep, getent
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+#
+
+bomb () { echo "$*" >&2; error=1; false; exit; }
+lookup () { getent ahostsv4 $1 | grep $1 | awk '{print $1}'; }
+
+((UID == 0)) || bomb "must run as root"
+[[ $(type -P gethostip) ]] ||
+	bomb "install gethostip from syslinux-utils"
+
+statefile=/var/lib/dnsroute.state
+
+hostname=${1:?}
+router=${2:?}; router=`lookup $router`
+newaddr=`lookup $hostname`
+[[ $newaddr ]] || bomb "lookup failed"
+
+trap exit_trap EXIT
+exit_trap ()
+{
+	local curgate
+	local r=$?
+
+	((error)) && return $r
+
+	curgate=$(ip -o route get $newaddr | grep -w via | awk '{print $3}')
+	[[ $curgate == $router && $oldaddr == $newaddr ]] &&
+		return  # already correct, nothing to do
+
+	if [[ $oldaddr != $newaddr ]]
+	then
+		echo "deleting old route $oldaddr via $router"
+		ip route delete $oldaddr via $router &>/dev/null
+	fi
+	
+	echo "adding route $newaddr via $router"
+	ip route replace $newaddr via $router
+}
+
+if test -e $statefile
+then
+	oldstate="$(grep -nm1 ^$1 $statefile)"
+	if [[ "$oldstate" ]]
+	then
+		read linenum_name oldaddr <<< "$oldstate"
+		linenum=${linenum_name%%:*}
+		name=${linenum_name#*:}
+		[[ $linenum && $name && $oldaddr ]] ||
+			bomb "could not get line, name or address"
+		if [[ $oldaddr != $newaddr ]]
+		then
+			echo "hostname $hostname changed $oldaddr to $newaddr"
+			sed -i "${linenum}c$name $newaddr" $statefile ||
+				bomb "statefile line $linenum replace failed"
+		fi
+		exit
+	fi
+fi
+
+name=${name:-$hostname}
+if echo "$name $newaddr" >> $statefile
+then echo "added new host $name to $statefile"
+else bomb "line addition failed: $statefile"
+fi
