@@ -31,6 +31,9 @@ router=${2:?}; router=`lookup $router`
 newaddr=`lookup $hostname`
 [[ $newaddr ]] || bomb "lookup failed"
 
+ip -o route get $router | grep -qw via &&
+	bomb "router $router not directly reachable"
+
 trap exit_trap EXIT
 exit_trap ()
 {
