@@ -93,6 +93,7 @@ def open_log_file():
 
     global logfd
 
+    try: logfd = os.open(KMSGFILE, os.O_RDONLY)
     except FileNotFoundError: sys.exit(EXIT_SUCCESS)
 
     st = os.fstat(logfd)
