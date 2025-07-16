@@ -23,7 +23,7 @@ from os import EX_SOFTWARE as EXIT_FAILURE
 
 #
 
-KMSGFILE = '/var/log/klog'
+KMSGFILE = '/var/log/kern.log'
 STATFILE = '/var/tmp/klogpoll-status.dat'
 
 # /* ioctl(2) to obtain inode generation number */
