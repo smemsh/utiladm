@@ -21,8 +21,6 @@ bomb () { echo "$*" >&2; error=1; false; exit; }
 lookup () { getent ahostsv4 $1 | grep $1 | awk '{print $1}'; }
 
 ((UID == 0)) || bomb "must run as root"
-[[ $(type -P gethostip) ]] ||
-	bomb "install gethostip from syslinux-utils"
 
 statefile=/var/lib/dnsroute.state
 
