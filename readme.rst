@@ -78,3 +78,11 @@ lvmchk
 - checks all lvm volumes for thin data/metadata usage
 - prints volume name if exceeds threshold
 - run in cron job to mail when thin pool out-of-space approaches
+
+
+dfmon
+------------------------------------------------------------------------------
+
+- checks disk space on all mounted ext4 filesystems
+- prints mount point if exceeds threshold
+- run in cron job to mail when disks reach critical

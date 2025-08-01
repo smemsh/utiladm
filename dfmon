@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#
+# dfmon
+#   cron monitor for disk usage and emit warning when over threshold
+#
+# https://gitub.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+# scott@smemsh.net
+
+bomb () { echo "$invname: ${FUNCNAME[1]}: ${*}, aborting"; exit 1; }
+
+invname=${0##*/}
+threshp=93; threshf=384
+
+dfouts=($(df -lt ext4 -BM --output=avail,pcent,target | tail -n +2))
+((${#dfouts[@]} % 3)) && bomb "dfouts not multiple of 3 columns"
+
+while true; do
+avail=${dfouts[i++]%M}; prcnt=${dfouts[i++]%'%'}; mount=${dfouts[i++]}
+((avail < threshf || prcnt > threshp)) && echo "dfmon: $mount"
+((i >= ${#dfouts[@]})) && break
+done
