@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# smartchk
+#   cron monitor for smart status, scans all drives, emit message if bad
+#
+# https://gitub.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+# scott@smemsh.net
+
+# ignore 7=loop, 1=ramdisk, 179=mmcblk
+# 0x1f masks status bits besides 0-4 (discard non-current state)
+#
+for disk in $(lsblk -nde 7,1,179 -o name); do
+smartctl -q silent -H /dev/$disk
+(($? & 0x1f)) && { echo "$disk has bad SMART"; let errors++; }
+done
+
+((errors)) && false || true

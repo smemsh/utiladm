@@ -86,3 +86,11 @@ dfmon
 - checks disk space on all mounted ext4 filesystems
 - prints mount point if exceeds threshold
 - run in cron job to mail when disks reach critical
+
+
+smartchk
+------------------------------------------------------------------------------
+
+- enumerates all disks that might support smart
+- checks smart health status, emit message if currently in bad state
+- run in cron job to mail when disk is deemed bad by its own smart counters
