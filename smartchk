@@ -7,9 +7,9 @@
 # https://spdx.org/licenses/GPL-2.0
 # scott@smemsh.net
 
-# only run on machines that are physical and in the root namespace
+# only run on physical machines in root namespace (have kthreadd)
 grep ^flags /proc/cpuinfo | fmt -1 | sort -u | grep -q ^hypervisor && exit
-cat /proc/1/environ | tr '\0' '\n' | grep ^container=lxc && exit
+if [[ $(ps -p2 -o pid=) ]]; then exit; fi # assumes pid not shared, no hidepid
 
 # ignore 7=loop, 1=ramdisk, 179=mmcblk
 # 0x1f masks status bits besides 0-4 (discard non-current state)
