@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+# kctl
+#   kubectl wrapper, mainly to add namespace arguments according to $KUBENS
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+#
+
+kctl ()
+{
+	local i cmdword kubectl
+	local -a cmd
+
+	for ((i = 1; i <= $#; i++))
+	do [[ ${!i:0:1} == '-' ]] && continue || break; done
+	cmdword=${!i}
+	cmd=("${@:1:i}")
+
+	if ((i < $#))
+	then case $cmdword in
+	(logs) cmd+=(-n ${KUBENS:-default});;&
+	(get|delete|describe|events|wait|label|annotate)
+	[[ $KUBENS == all ]] \
+	&& cmd+=(-A) \
+	|| cmd+=(-n ${KUBENS:-default});&
+	(*) cmd+=("${@:i+1}");;
+	esac; fi
+
+	[[ $(type -P kubecolor) ]] && kubectl=kubecolor || kubectl=kubectl
+	$kubectl "${cmd[@]}"
+}
+
+# this will be rarely used, for remaking the 'case' clause in kctl()
+knscmds ()
+{
+	for cmd in $(
+	kubectl --help \
+	| grep -E ^$'\x20+[a-z]' \
+	| field 1 \
+	| grep -v kubectl
+	)
+	do kubectl $cmd --help \
+	| grep -q -- --all-namespaces \
+	&& echo $cmd
+	done
+}
+
+main ()
+{
+	if [[ $(declare -F $invname) ]]
+	then $invname "${args[@]}"
+	else bomb "unimplemented command '$invname'"; fi
+}
+
+invname=${0##*/} # 0.9.0
+invdir=${0%/*}
+
+main "$@"
