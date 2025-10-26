@@ -10,12 +10,14 @@
 
 kctl ()
 {
-	local i cmdword kubectl
+	local i cmdword nextword nextidx kubectl skipns
 	local -a cmd
 
 	for ((i = 1; i <= $#; i++))
 	do [[ ${!i:0:1} == '-' ]] && continue || break; done
+	nextidx=$((i+1))
 	cmdword=${!i}
+	nextword=${!nextidx}
 	cmd=("${@:1:i}")
 
 	if ((i < $#))
@@ -25,10 +27,15 @@ kctl ()
 	cmd+=(-n ${KUBENS:-default})
 	;;&
 
-	(get|delete|describe|events|wait|label|annotate)
-	[[ $KUBENS == all ]] \
-	&& cmd+=(-A) \
-	|| cmd+=(-n ${KUBENS:-default})
+	(delete)
+	[[ $nextword == nodes ]] && skipns=1
+	;&
+
+	(get|describe|events|wait|label|annotate)
+	if [[ $KUBENS == all ]]
+	then ((skipns)) || cmd+=(-A)
+	else ((skipns)) || cmd+=(-n ${KUBENS:-default})
+	fi
 	;&
 
 	(*)
