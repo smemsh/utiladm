@@ -20,12 +20,21 @@ kctl ()
 
 	if ((i < $#))
 	then case $cmdword in
-	(logs) cmd+=(-n ${KUBENS:-default});;&
+
+	(logs)
+	cmd+=(-n ${KUBENS:-default})
+	;;&
+
 	(get|delete|describe|events|wait|label|annotate)
 	[[ $KUBENS == all ]] \
 	&& cmd+=(-A) \
-	|| cmd+=(-n ${KUBENS:-default});&
-	(*) cmd+=("${@:i+1}");;
+	|| cmd+=(-n ${KUBENS:-default})
+	;&
+
+	(*)
+	cmd+=("${@:i+1}")
+	;;
+
 	esac; fi
 
 	[[ $(type -P kubecolor) ]] && kubectl=kubecolor || kubectl=kubectl
