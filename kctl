@@ -14,10 +14,10 @@ kctl ()
 	local -a cmd
 
 	for ((i = 1; i <= $#; i++))
-	do [[ ${!i:0:1} == '-' ]] && continue || break; done
+	do [[ "${!i:0:1}" == '-' ]] && continue || break; done
 	nextidx=$((i+1))
-	cmdword=${!i}
-	nextword=${!nextidx}
+	cmdword="${!i}"
+	nextword="${!nextidx}"
 	cmd=("${@:1:i}")
 
 	if ((i < $#))
