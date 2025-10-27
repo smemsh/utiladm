@@ -28,7 +28,7 @@ kctl ()
 	;;&
 
 	(delete)
-	[[ $nextword == nodes ]] && skipns=1
+	[[ "$nextword" == nodes ]] && skipns=1
 	;&
 
 	(get|describe|events|wait|label|annotate)
