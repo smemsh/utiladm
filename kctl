@@ -44,7 +44,15 @@ kctl ()
 
 	esac; fi
 
-	[[ $(type -P kubecolor) ]] && kubectl=kubecolor || kubectl=kubectl
+	# wrap with kubecolor if present, but not for completions.  not
+	# clear why we can't, because if we don't use this script, but
+	# merely alias kubectl=kubecolor, then completions work fine.
+	# tried to debug this issue, but ran out of time.  TODO
+	#
+	kubectl=kubectl
+	if [[ "$cmdword" != __complete ]]
+	then [[ $(type -P kubecolor) ]] && kubectl=kubecolor; fi
+
 	$kubectl "${cmd[@]}"
 }
 
