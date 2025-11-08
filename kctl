@@ -10,15 +10,35 @@
 
 kctl ()
 {
-	local i cmdword nextword nextidx kubectl skipns
+	local i cmdword nextword nextidx kubectl skipns nsarg nsoff
 	local -a cmd
 
+	# stash the -n if user requested, but must come before command word
 	for ((i = 1; i <= $#; i++))
-	do [[ "${!i:0:1}" == '-' ]] && continue || break; done
+	do
+		if [[ "${!i:0:1}" == '-' ]]
+		then
+			if [[ "${!i}" == -n ]]
+			then
+				nsoff=$i
+				let i++
+				nsarg="${!i}"
+			fi
+			continue
+		else
+			break
+		fi
+	done
+
 	nextidx=$((i+1))
 	cmdword="${!i}"
 	nextword="${!nextidx}"
 	cmd=("${@:1:i}")
+
+	# if the user asked for -n namespace on cli directly, we kept it, now
+	# remove it from the cli args because we will add our own -n
+	#
+	((nsoff)) && unset "cmd[$((nsoff - 1))]" "cmd[$nsoff]"
 
 	if ((i < $#))
 	then case $cmdword in
@@ -32,6 +52,7 @@ kctl ()
 	;&
 
 	(get|describe|events|wait|label|annotate)
+	[[ $nsarg ]] && KUBENS=$nsarg
 	if [[ $KUBENS == all ]]
 	then ((skipns)) || cmd+=(-A)
 	else ((skipns)) || cmd+=(-n ${KUBENS:-default})
