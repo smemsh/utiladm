@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# mkuser: make user, empty home dir, bash shell
+#
+# scott@smemsh.net
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licenses/GPL-2.0
+
+set -e
+useradd -M ${1:?}
+eval mkdir ~$1
+eval chown $1:$1 ~$1
+usermod -s /bin/bash $1
