@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # kctl
-#   kubectl wrapper, mainly to add namespace arguments according to $KUBENS
+#   kubectl wrapper, mainly for output format and adding ns args from $KUBENS
 #
 # scott@smemsh.net
 # https://github.com/smemsh/utiladm/
@@ -45,6 +45,9 @@ kctl ()
 
 	(logs)
 	cmd+=(-n ${KUBENS:-default})
+	;;&
+
+	(get) ((COLUMNS >= 120)) && test -t 1 && cmd+=(-o wide)
 	;;&
 
 	(delete)
