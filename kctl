@@ -40,7 +40,7 @@ kctl ()
 	#
 	((nsoff)) && unset "cmd[$((nsoff - 1))]" "cmd[$nsoff]"
 
-	if ((i < $#))
+	if ((i <= $#))
 	then case $cmdword in
 
 	(logs)
