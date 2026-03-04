@@ -26,11 +26,13 @@ statefile=/var/lib/dnsroute.state
 
 hostname=${1:?}
 router=${2:?}; router=`lookup $router`
+
+# avoid endless spam if not up yet by using stdout, squelched in cron job
+if ip -o route get $router | grep -qw via
+then echo "router $router not directly reachable"; false; exit; fi
+
 newaddr=`lookup $hostname`
 [[ $newaddr ]] || bomb "lookup failed"
-
-ip -o route get $router | grep -qw via &&
-	bomb "router $router not directly reachable"
 
 trap exit_trap EXIT
 exit_trap ()
