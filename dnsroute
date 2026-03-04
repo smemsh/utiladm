@@ -12,7 +12,7 @@
 # deps:
 #   - ip, awk, grep, getent
 #
-# scott@smemsh.net
+# Scott Mcdermott <scott@smemsh.net>
 # https://github.com/smemsh/utiladm/
 # https://spdx.org/licenses/GPL-2.0
 #
