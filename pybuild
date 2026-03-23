@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 #
 # pybuild
-#   - builds static or dynamically linked Python + OpenSSL
-#   - always statically links libssl/libcrypto
+#   builds static or dynamically linked Python, always static ssl/crypto
 #
 # desc:
 #   - script to configure and build python, makes tar.zst
