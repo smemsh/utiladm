@@ -145,6 +145,17 @@ mutate ()
 	#
 	sed -i s,-flto,-flto=auto,g Makefile.pre
 
+	# further mutation only required for static build
+	[[ $buildtype == dynamic ]] && return
+
+	# this was unnecessary in 3.13, doubly-specified objects on the link
+	# line... should sort this out in creation of LIBACL_HMAC_OBJS, doing
+	# this is a hack, but works TODO
+	#
+	sed -r -i '/^\t\t\$\(LIBHACL_(MD5|SHA.|BLAKE2)_OBJS/d' Makefile.pre
+	sed -r -i 's,(^\t\tModules/_hacl/Hacl_Streaming_HMAC.o) \\$,\1,' \
+	Makefile.pre
+
 	echo done
 }
 
