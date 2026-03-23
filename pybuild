@@ -298,6 +298,24 @@ build ()
 	echo $out
 }
 
+verify ()
+{
+	printf "verify: "
+
+	# linked with the version on disk that we requested
+	binver="$($ssldir/bin/openssl version)"
+	pyver="$(./python -c 'from ssl import OPENSSL_VERSION as v; print(v)')"
+	[[ "$binver" =~ ^"$pyver" ]]
+
+	# libssl and libcrypto are linked statically into extension module
+	if [[ $buildtype == dynamic ]]
+	then if ldd Modules/_ssl*.so | grep -q -e ssl -e crypto
+	then bomb "openssl module has dynamic linkage"
+	fi; fi
+
+	echo "$pyver"
+}
+
 package ()
 {
 	make DESTDIR=$relocroot install \
@@ -325,6 +343,7 @@ main ()
 	mutate
 	setup
 	build
+	verify
 	package
 
 	echo "build completed in ${SECONDS}s"
