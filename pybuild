@@ -240,11 +240,17 @@ setup ()
 		-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
 		-e '/^_tkinter\>/d'
 		-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
+		#-e '/^_testcapi\>/d'
 		#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
 		#-e '/^_testsinglephase\>/a\'
 		#-e '_testclinic _testclinic.c'
 	)
 	rules_dynamic=(
+		#-e '/^_typing\>/d'
+		#-e '/^_types\>/d'
+		#-e 's/^_types _typesmodule\.c$/*static*\n&\n*shared*/'
+		#-e 's/^_typing _typingmodule\.c$/*static*\n&\n*shared*/'
+		#-e 's/^_opcode _opcode\.c$/*static*\n&\n*shared*/'
 	)
 	declare -n rulesref=rules_$buildtype
 
