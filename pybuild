@@ -11,6 +11,18 @@
 # args:
 #   - arg1: whether to build 'static' or 'dynamic' interpreter
 #
+# static-note:
+#   - static build is truly static (unlike python-standalone project)
+#   - caveat: still dlopens libnss_foo.so.2 at runtime
+#   - see https://sourceware.org/glibc/wiki/FAQ "Even statically linked..."
+#   - no soname/api changes in libnss_* for many years
+#   - therefore, works on any glibc linux, tested back to rhel6
+#   - should also work on alpine/musl with gcompat pkg and copied libnss_*
+#   - works at least for creating a static vim build with python support
+#   - causes problems with some pypi packages that do compiles (gcloud, numpy)
+#   - todo: link to hand-built glibc with --enable-static-nss as in glibc faq
+#   - todo: test on musl as above
+#
 # Scott Mcdermott <scott@smemsh.net>
 # https://github.com/smemsh/utiladm/
 # https://spdx.org/licenses/GPL-2.0
