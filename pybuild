@@ -65,24 +65,6 @@ logstr=$buildtype-$pyver-$logtime
 
 pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_opt_${arch}_${osver}
 
-for libdir in lib{64,}
-do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
-[[ $slib ]]
-
-cryptolibs=(
-	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-	-l:libz.a -Wl,--exclude-libs,libz.a
-)
-sslinc=(
-	-I$ssldir/include
-)
-sslld=(
-	-L$ssldir/$slib
-)
-ssllibs=(
-	-l:libssl.a -Wl,--exclude-libs,libssl.a
-	${cryptolibs[@]}
-)
 ###
 
 buildwatch ()
@@ -144,6 +126,32 @@ configure ()
 setup ()
 {
 	local ncinc nclibs
+
+	# this is only relevant for the static build.  dynamic build also
+	# links statically but uses its own logic hardcoded for lib/ so
+	# openssl build *must* do "ln -s lib64 lib" in ssl basedir
+	# TODO file issue upstream
+	#
+	for libdir in lib{64,}
+	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
+	[[ $slib ]]
+
+	cryptolibs=(
+		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+		-l:libz.a -Wl,--exclude-libs,libz.a
+	)
+	sslinc=(
+		-I$ssldir/include
+	)
+	sslld=(
+		-L$ssldir/$slib
+	)
+	ssllibs=(
+		-l:libssl.a -Wl,--exclude-libs,libssl.a
+		${cryptolibs[@]}
+	)
+
+	#
 
 	sslrule=(
 		_ssl{,.c}
