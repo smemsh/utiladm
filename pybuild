@@ -134,6 +134,20 @@ configure ()
 	cp config.log config-$logstr.log
 }
 
+mutate ()
+{
+	printf mutate...
+
+	# otherwise it uses only one cpu, with gcc.  apparently this does not
+	# happen with clang (untested).  using a more recent Make (as of
+	# 20260320, v4.4.1 was most recent, which we tried) was supposed to
+	# fix this and use the Make job server, but didn't. TODO use clang
+	#
+	sed -i s,-flto,-flto=auto,g Makefile.pre
+
+	echo done
+}
+
 setup ()
 {
 	local ncinc nclibs
@@ -287,6 +301,7 @@ main ()
 	echo done
 
 	configure
+	mutate
 	setup
 	build
 	package
