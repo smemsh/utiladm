@@ -69,7 +69,7 @@ buildwatch ()
 {
 	if [[ $DEBUG == 1 ]]; then cat; return; fi
 	pv -bntl 2>&1 >|${1:?}-$logstr.log | while read secs lines
-	do printf "%s\t\t\r" "$1: ${lines} lines in ${secs%.*}s"
+	do printf "%s\t\t\t\t\r" "$1: ${lines} lines in ${secs%.*}s"
 	done; echo
 	ln -nsf $1-$logstr.log $1.log
 }
