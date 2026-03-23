@@ -65,6 +65,26 @@ logstr=$buildtype-$pyver-$logtime
 
 pkgbase=python-${pyver}_${buildtype}_staticssl-${sslver}_opt_${arch}_${osver}
 
+for libdir in lib{64,}
+do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
+[[ $slib ]]
+
+cryptolibs=(
+	-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
+	-l:libz.a -Wl,--exclude-libs,libz.a
+)
+sslinc=(
+	-I$ssldir/include
+)
+sslld=(
+	-L$ssldir/$slib
+)
+ssllibs=(
+	-l:libssl.a -Wl,--exclude-libs,libssl.a
+	${cryptolibs[@]}
+)
+###
+
 buildwatch ()
 {
 	if [[ $DEBUG == 1 ]]; then cat; return; fi
@@ -123,29 +143,20 @@ configure ()
 
 setup ()
 {
-	local libdir slib ncinc nclibs
-	for libdir in lib{64,}
-	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
-	[[ $slib ]]
+	local ncinc nclibs
 
-	cryptoinc=(
-		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-		-l:libz.a -Wl,--exclude-libs,libz.a
-	)
-	sslinc=(
-		-I$ssldir/include
-		-L$ssldir/$slib
-	)
 	sslrule=(
 		_ssl{,.c}
 		${sslinc[@]}
-		-l:libssl.a -Wl,--exclude-libs,libssl.a
-		${cryptoinc[@]}
+		${sslld[@]}
+		${ssllibs[@]}
+		${cryptolibs[@]}
 	)
 	hashlibrule=(
 		_hash{lib,openssl.c}
 		${sslinc[@]}
-		${cryptoinc[@]}
+		${sslld[@]}
+		${cryptolibs[@]}
 	)
 	sqlite3rule=(
 		_sqlite3
@@ -155,11 +166,6 @@ setup ()
 
 	###
 
-	rules_static=(
-		-e '0,/^\*shared\*$/s,shared,static,'
-		-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
-		-e '/^\*shared\*$/d'
-	)
 	nclibs='-ltinfo'
 	if [[ $osver == u18 ]]; then
 		ncinc=-I/usr/include/ncursesw    # ncurses <= 5
@@ -167,28 +173,35 @@ setup ()
 		nclibs+=$'\x20-lgpm'             # too bad u18 needs it
 		sslrule+=(-ldl)                  # must be after libcrypto
 	fi
-	rules_common=(
-		-e '/^nis\>/d'
-		-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
+	rules_static=(
+		-e '0,/^\*shared\*$/s,shared,static,'
+		-e '/^_hashlib/a\' -e "${sqlite3rule[*]}"
+		-e '/^\*shared\*$/d'
 		-e '/^readline\>/s,termcap,tinfo,'
 		-e "s%^_ssl\\>.*%${sslrule[*]}%"
 		-e "s%^_hashlib\\>.*%${hashlibrule[*]}%"
-		-e '/^_tkinter\>/d'
 		-e "/^_curses\\>/s,(-lncurses).*-ltermcap,$ncinc \\1w $nclibs,"
 		-e "/^_curses_panel\\>/s,(-lpanel),$ncinc \\1w $nclibs,"
 		-e "/^_curses_panel\\>/s,(-lncurses),\\1w $nclibs,"
 		-e '/^_test/d'
+	)
+	rules_common=(
+		-e '/^nis\>/d'
+		-e '/^_uuid\>/s,(-luuid),-I/usr/include/uuid \1,'
+		-e '/^_tkinter\>/d'
 		-e '/^\*disabled\*$/a\' -e 'nis\n_tkinter\nspwd'
 		#-e "s,^(_testcapi\\>.*),\\1 $(echo _testcapi/*.c),"
 		#-e '/^_testsinglephase\>/a\'
 		#-e '_testclinic _testclinic.c'
 	)
 	rules_dynamic=(
-		-e '/^_typing\>/d'
 	)
 	declare -n rulesref=rules_$buildtype
 
 	###
+
+	if [[ $buildtype == dynamic ]]
+	then echo skipped; return; fi
 
 	cd Modules
 	sed -n -r 's/^#([a-z_\*].*)$/\1/p' Setup >| Setup.local
