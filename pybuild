@@ -141,16 +141,23 @@ mutate ()
 	# otherwise it uses only one cpu, with gcc.  apparently this does not
 	# happen with clang (untested).  using a more recent Make (as of
 	# 20260320, v4.4.1 was most recent, which we tried) was supposed to
-	# fix this and use the Make job server, but didn't. TODO use clang
+	# fix this and use the Make job server, but didn't.  TODO use clang
 	#
 	sed -i s,-flto,-flto=auto,g Makefile.pre
 
 	# further mutation only required for static build
-	[[ $buildtype == dynamic ]] && return
+	if [[ $buildtype == dynamic ]]
+	then echo done; return; fi
 
-	# this was unnecessary in 3.13, doubly-specified objects on the link
-	# line... should sort this out in creation of LIBACL_HMAC_OBJS, doing
-	# this is a hack, but works TODO
+	# this was unnecessary in 3.13, but in 3.14 we get doubly-specified
+	# objects on the link line, must be the HACL* changes.  should sort
+	# this out in LIBHACL_HMAC_OBJS (TODO); doing the below is a hack, but
+	# works.  second sed is to fix the trailing backslash, which last line
+	# of the rule must not have, to avoid run-on with the following line.
+	#
+	# UPDATE: doing this removal may have forced us to 'addmod' these
+	# objects later (in build()) into libpython.a, but we did not yet test,
+	# as this has already taken too long, it needs to ship.
 	#
 	sed -r -i '/^\t\t\$\(LIBHACL_(MD5|SHA.|BLAKE2)_OBJS/d' Makefile.pre
 	sed -r -i 's,(^\t\tModules/_hacl/Hacl_Streaming_HMAC.o) \\$,\1,' \
@@ -283,7 +290,6 @@ build ()
 	printf "addlibs: "
 	pylib=libpython$pymmver.a
 	test -f $pylib
-
 	for straylib in $(find Modules/ -name '*.a'); do
 		ar -M <<- %
 			open $pylib
@@ -294,7 +300,43 @@ build ()
 		printf "${straylib##*/} "
 		let ++added
 	done
-	((added == 0)) && out=done || ranlib $pylib
+	((added == 0)) && out=done
+	echo $out
+
+	# lots of existing issues related to this (131298, 116043), could be
+	# something we did with the mutate() sed, look into this later TODO
+	#
+	printf "addmods: "
+	haclobjs=($(find Modules/_hacl/ -name '*.o'))
+	for o in ${haclobjs[@]}; do hacladds+="addmod $o\n"; done
+	ar -M <<- %
+		open $pylib
+		$(echo -e "$hacladds")
+		save
+		end
+	%
+	if ((${#haclobjs[@]}))
+	then
+		# make the output to fit on a 78 col line, rather than
+		# list everything with full name (over 160 chars).  it does
+		# remove some information (like the variants) but that's
+		# probably ok for a nominal status line
+		#
+		out="$(ls -1 Modules/_hacl/*.o \
+		| awk -F / '{print $NF}' \
+		| sed \
+		  -e s,^Hacl_,, \
+		  -e s,^Hash_,, \
+		  -e s,_Simd.\*,, \
+		  -e s,Streaming_.\*,, \
+		  -e s,^Lib_,, \
+		| awk -F . '{print $1}' \
+		| sort \
+		| uniq \
+	)"; else out=done; fi
+
+	if ((${#haclobjs[@]})) || ((added))
+	then ranlib $pylib; fi
 	echo $out
 }
 
