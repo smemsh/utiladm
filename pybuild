@@ -97,7 +97,12 @@ configure ()
 		LDSHARED=gcc
 		LINKFORSHARED=
 	)
-	env_dynamic=()
+	env_dynamic=(
+		# needed for link with our static ssl
+		#LIBS="'$(printf -- "-l%s " brotli{common,dec,enc} zstd)'"
+		#LDFLAGS="'$(printf -- "-l%s " brotli{common,dec,enc} zstd)'"
+		#LDFLAGS="'$(printf -- "-l:lib%s.a " brotli{common,dec,enc})'"
+	)
 	env_common=()
 	declare -n envref=env_$buildtype
 
