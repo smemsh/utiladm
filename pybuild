@@ -5,7 +5,7 @@
 #
 # desc:
 #   - script to configure and build python, makes tar.zst
-#   - last tested with python 3.14 line, openssl 3.0 line
+#   - last tested with python 3.14 line, openssl 3.5 line
 #   - has some hardcoded paths, confined to variables
 #
 # args:
