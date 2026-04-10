@@ -89,7 +89,7 @@ buildwatch ()
 
 configure ()
 {
-	local staticlto
+	local staticlto {env,conf}_{static,dynamic,common}
 
 	env_static=(
 		LDFLAGS="'-static -static-libgcc'"
