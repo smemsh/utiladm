@@ -184,10 +184,10 @@ setup ()
 	do if test -d $ssldir/$libdir; then slib=$libdir; break; fi; done
 	[[ $slib ]]
 
-	cryptolibs=(
-		-l:libcrypto.a -Wl,--exclude-libs,libcrypto.a
-		-l:libz.a -Wl,--exclude-libs,libz.a
-	)
+	cryptolibs=($(
+		for lib in crypto z # brotli{common,dec,enc}
+		do echo -l:lib$lib.a -Wl,--exclude-libs,lib$lib.a; done
+	))
 	sslinc=(
 		-I$ssldir/include
 	)
