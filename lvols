@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# lvols
+#   wrapper for lvs that sets maximum field width to avoid wrapping
+#
+# Scott Mcdermott <scott@smemsh.net>
+# https://github.com/smemsh/utiladm/
+# https://spdx.org/licsenses/GPL-2.0
+
+lvs --reportformat json "$@" \
+| jq -r --arg sepstr $'\x20\x20' --argjson global_max 30 '
+def pad(w; s):
+	(s // "" | tostring) as $str |
+	if ($str | length) > w then
+		$str[0:w-3] + "..."
+	else
+		$str + (" " * (w - ($str | length)))
+	end;
+
+[.report[].lv[]] as $rows |
+
+if ($rows | length) == 0 then
+	empty
+else
+	# extract keys from first row, preserving order
+	($rows[0] | keys_unsorted) as $all_keys |
+
+	# select only fields with at least non-empty value
+	($all_keys | map(select(
+		. as $k | $rows | any(.[$k] != "" and .[$k] != null)
+	))) as $keys |
+
+	# calculate fields widths for each selected
+	(reduce $keys[] as $k (
+	{};
+	.[$k] = (
+		([($rows[].[$k] // "") | tostring | length] | max) |
+		if . > $global_max then $global_max else . end |
+		if . < ($k | length) then ($k | length) else . end
+	))) as $widths |
+
+	# header line
+	([$keys[] | pad($widths[.]; .)] | join($sepstr)),
+
+	# data row
+	(
+		$rows[] | . as $row |
+		[$keys[] | pad($widths[.]; $row[.]) ] | join($sepstr)
+	)
+end
+'
