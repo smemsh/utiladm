@@ -27,9 +27,10 @@ statefile=/var/lib/dnsroute.state
 hostname=${1:?}
 router=${2:?}; router=`lookup $router`
 
-# avoid endless spam if not up yet by using stdout, squelched in cron job
-if ip -o route get $router | grep -qw via
-then echo "router $router not directly reachable"; false; exit; fi
+# avoid endless mails if not up by using stdout only (squelched in cron job)
+rtout="$(ip -o route get $router 2>&1)"
+if (($?)) || grep -qw via <<< "$rtout"
+then echo "indirect or missing route to $router"; false; exit; fi
 
 newaddr=`lookup $hostname`
 [[ $newaddr ]] || bomb "lookup failed"
