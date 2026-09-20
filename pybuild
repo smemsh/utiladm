@@ -246,6 +246,7 @@ setup ()
 		-e "/^_curses_panel\\>/s,(-lpanel),$ncinc \\1w $nclibs,"
 		-e "/^_curses_panel\\>/s,(-lncurses),\\1w $nclibs,"
 		-e '/^_test/d'
+		-e '/^xx/d'
 	)
 	rules_common=(
 		-e '/^nis\>/d'
