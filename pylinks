@@ -46,7 +46,7 @@ pcreldir=lib/pkgconfig
 
 for dir in bin $pcreldir $manreldir include; do
 	testdir=$destroot/$dir
-	if ! test -d $testdir
+	if test ! -d $testdir
 	then mkdir -p $testdir; fi
 	[[ $(readlink -f $testdir) == $testdir ]]
 done
@@ -56,7 +56,7 @@ for dir in {include,lib}/$pymmver; do
 	pypath=$pyroot/$dir
 	test -d $pypath
 	[[ $(readlink -f $pypath) == $pypath ]]
-	test -L $destpath || ! test -e $destpath
+	test -L $destpath || test ! -e $destpath
 	$run ln ${linkrel:+-r} -nsf $pypath $destpath
 done
 
@@ -67,7 +67,7 @@ for dir in bin lib/pkgconfig; do
 	for path in $pydir/*; do
 		file=${path##*/}
 		destfile=$destdir/$file
-		test -L $destfile || ! test -e $destfile
+		test -L $destfile || test ! -e $destfile
 		$run ln ${linkrel:+-r} -nsf $path $destdir
 	done
 done
@@ -76,13 +76,13 @@ destmandir=$destroot/$manreldir
 for path in $pyroot/$manreldir/*; do
 	file=${path##*/}
 	destfile=$destmandir/$file
-	test -L $destfile || ! test -e $destfile
+	test -L $destfile || test ! -e $destfile
 	$run ln ${linkrel:+-r} -nsf $path $destmandir
 done
 
 pylibdest=$destroot/$pylibrel
 pylibpath=$pyroot/$pylibrel
-test -L $pylibdest || ! test -e $pylibdest
+test -L $pylibdest || test ! -e $pylibdest
 ln ${linkrel:+-r} -nsf $pylibpath $pylibdest
 
 disjuncts=($(export LANG=C; comm -1 -3 \
